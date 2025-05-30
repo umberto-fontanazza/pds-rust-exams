@@ -20,80 +20,65 @@ Si implementi, utilizzando il linguaggio Rust o C++, tale astrazione tenendo con
  metodi dovranno essere thread-safe.
 */
 
-use std::fmt::Debug;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender};
-use std::thread;
-use std::thread::JoinHandle;
+use std::sync::Arc;
+use std::thread::{spawn, JoinHandle};
 
-struct Looper<Message: Send + Debug + 'static> {
-    sender_to_master:Mutex<Option<Sender<Message>>>, //might be unnecessary to use the lock
-    master_handle: Option<JoinHandle<()>>
+pub struct Looper<T: Send> {
+    sender: Option<Sender<T>>,
+    thread: Option<JoinHandle<()>>,
 }
 
-impl<Message: Send + Debug + 'static> Looper<Message>{
-    fn new(process: impl Fn(Message)->() + Send + 'static, cleanup: impl FnOnce() + Send + 'static) -> Arc<Self>{
-    let (s,r) = channel();
-
-    let master_handle = thread::spawn({
-        let receiver = r;
-        let process = process;
-        let cleanup = cleanup;
-        move||{
-            while let Ok(msg) = receiver.recv() {
-                process(msg);
+impl<T: Send + 'static> Looper<T> {
+    pub fn new<P, C>(mut process: P, cleanup: C) -> Self
+    where
+        P: FnMut(T) -> () + Send + 'static,
+        C: FnOnce() -> () + Send + 'static,
+    {
+        let (sender, receiver) = channel::<T>();
+        let thread = spawn(move || {
+            while let Ok(message) = receiver.recv() {
+                process(message)
             }
             cleanup();
-        }
-    });
-
-    return Arc::new(Looper{
-        sender_to_master: Mutex::new(Some(s)),
-        master_handle: Some(master_handle)
-    })
+        });
+        let sender = Some(sender);
+        let thread = Some(thread);
+        Self { sender, thread }
     }
 
-    fn send(&self, msg: Message){
-        //i didn't find any smarter way to prevent the bottleneck
-        let mut lock = self.sender_to_master.lock().unwrap();
-        let sender = (*lock).take().unwrap();
-        sender.send(msg).unwrap();
-        (*lock) = Some(sender);
+    pub fn send(&self, message: T) {
+        self.sender.as_ref().unwrap().send(message).unwrap();
     }
 }
 
-impl<Message: Send + Debug> Drop for Looper<Message>{
-    fn drop(&mut self){
-        let sender = self.sender_to_master.lock().unwrap().take().unwrap();
-        drop(sender);
-        let join_handle = self.master_handle.take().unwrap();
-        join_handle.join().unwrap();
+impl<T: Send> Drop for Looper<T> {
+    fn drop(&mut self) {
+        self.sender.take().unwrap();
+        self.thread.take().unwrap().join().unwrap();
     }
 }
 
 fn main() {
-    let l = Looper::new(process, cleanup);
+    let process = |number: usize| {
+        println!("Thread {number} sent to the Looper!");
+    };
+    let cleanup = || {
+        println!("Cleaning up");
+    };
+    let my_looper = Arc::new(Looper::new(process, cleanup));
 
-    let mut vec= vec![];
-    for i in 0..5 {
-        vec.push(thread::spawn({
-            let l_cloned = l.clone();
-            move || {
-                println!("Sending message #{}", i);
-                l_cloned.send(i);
-            }
-        }))
+    let (count_threads, count_messages) = (5, 5);
+    let mut threads = Vec::<JoinHandle<()>>::with_capacity(count_threads);
+    for thread_id in 0..count_threads {
+        let looper_arc = my_looper.clone();
+        threads.push(spawn(move || {
+            (0..count_messages).for_each(|_| {
+                looper_arc.send(thread_id);
+            });
+        }));
     }
-
-    for v in vec {
-        v.join().unwrap();
-    }
-}
-
-fn process<Message: Debug>(msg: Message) {
-    println!("Processing {:?}", msg);
-}
-
-fn cleanup() {
-    println!("cleaning...");
+    threads
+        .into_iter()
+        .for_each(|handle| handle.join().unwrap());
 }
