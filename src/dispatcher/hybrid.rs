@@ -66,7 +66,7 @@ impl<Msg> Drop for Subscription<Msg> {
     }
 }
 
-fn main() {
+pub fn test() {
     let dispatcher = Arc::new(Dispatcher::new());
 
     let mut handles = vec![];

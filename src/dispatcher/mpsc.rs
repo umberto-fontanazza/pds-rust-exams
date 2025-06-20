@@ -18,8 +18,8 @@ pub struct Dispatcher<M>
 where
     M: Clone,
 {
-    sender: Sender<MessageOrSubscribe<M>>,
-    thread: JoinHandle<()>,
+    sender: Option<Sender<MessageOrSubscribe<M>>>,
+    thread: Option<JoinHandle<()>>,
 }
 
 impl<M> Dispatcher<M>
@@ -30,8 +30,8 @@ where
         let (snd, rx) = channel::<MessageOrSubscribe<M>>();
         let mut subscriptions = Vec::<Sender<M>>::new();
         Self {
-            sender: snd,
-            thread: spawn(move || {
+            sender: Some(snd),
+            thread: Some(spawn(move || {
                 while let Ok(incoming) = rx.recv() {
                     match incoming {
                         MessageOrSubscribe::Subscribe(s) => {
@@ -45,19 +45,35 @@ where
                         }
                     }
                 }
-            }),
+            })),
         }
     }
 
     pub fn dispatch(&self, msg: M) {
-        self.sender.send(MessageOrSubscribe::Message(msg)).unwrap();
+        self.sender
+            .as_ref()
+            .unwrap()
+            .send(MessageOrSubscribe::Message(msg))
+            .unwrap();
     }
 
     pub fn subscribe(&self) -> Subscription<M> {
         let (snd, rx) = channel::<M>();
         self.sender
+            .as_ref()
+            .unwrap()
             .send(MessageOrSubscribe::Subscribe(snd))
             .unwrap();
         Subscription(rx)
+    }
+}
+
+impl<M> Drop for Dispatcher<M>
+where
+    M: Clone,
+{
+    fn drop(&mut self) {
+        self.sender.take().unwrap();
+        self.thread.take().unwrap().join().unwrap();
     }
 }
