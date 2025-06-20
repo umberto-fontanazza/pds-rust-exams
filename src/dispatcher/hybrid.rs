@@ -10,20 +10,20 @@ pub struct Dispatcher<Msg: Clone> {
 }
 
 impl<Msg: Clone> Dispatcher<Msg> {
-    fn new() -> Dispatcher<Msg> {
+    pub fn new() -> Dispatcher<Msg> {
         Dispatcher {
             senders_vec: Mutex::new(vec![]),
         }
     }
 
-    fn subscribe(&self) -> Subscription<Msg> {
+    pub fn subscribe(&self) -> Subscription<Msg> {
         let (tx, rx) = channel();
         let mut lock = self.senders_vec.lock().unwrap();
         (*lock).push(tx);
         Subscription::new(rx)
     }
 
-    fn dispatch(&self, msg: Msg) {
+    pub fn dispatch(&self, msg: Msg) {
         let lock = self.senders_vec.lock().unwrap();
 
         for sender in lock.iter() {
@@ -76,7 +76,7 @@ fn main() {
             //clono il riferimento al dispatcher in modo da poterlo chiamare da più threads
             let d = dispatcher.clone();
             move || {
-                let time = rand::thread_rng().gen_range(0..5);
+                let time = rand::rng().random_range(0..5);
                 sleep(Duration::from_secs(time));
                 let sub = d.subscribe();
                 //il dispatcher è multiple-producer e può essere utilizzato da più threads insieme
@@ -86,7 +86,7 @@ fn main() {
                 // e se il thread possiede un riferimento mentre fa la read richia di mandarsi da solo in deadlock
                 std::mem::drop(d);
                 loop {
-                    let time = rand::thread_rng().gen_range(10..100);
+                    let time = rand::rng().random_range(10..100);
                     sleep(Duration::from_millis(time)); //helps print to remain mostly in-order
                     let res = sub.read();
                     match res {
@@ -98,7 +98,7 @@ fn main() {
                             println!("    thread {} received msg {} ", i, msg)
                         }
                     }
-                    let early_drop = rand::thread_rng().gen_range(0..10);
+                    let early_drop = rand::rng().random_range(0..10);
                     if early_drop == 0 {
                         println!("Thread {i} returns EARLY");
                         drop(sub);
@@ -111,7 +111,7 @@ fn main() {
 
     for i in 30..35 {
         println!("> Dispatching value {i}");
-        let time = rand::thread_rng().gen_range(2..4);
+        let time = rand::rng().random_range(2..4);
         sleep(Duration::from_secs(time));
         dispatcher.dispatch(i.to_string() + " from main");
     }

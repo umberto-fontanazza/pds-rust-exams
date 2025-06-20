@@ -1,12 +1,6 @@
-/*
-La classe generica Exchanger<T> permette a due thread di scambiarsi un valore di tipo T. Essa offre esclusivamente il metodo pubblico T exchange( T t) che blocca il
-thread chiamante senza consumare CPU fino a che un altro thread non invoca lo stesso metodo, sulla stessa istanza. Quando questo avviene, il metodo restituisce
-l’oggetto passato come parametro dal thread opposto.
-*/
-
 use rand::Rng;
 use std::fmt::Debug;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::sleep;
@@ -57,7 +51,7 @@ impl<T: Debug> Exchanger<T> {
     }
 }
 
-fn main() {
+pub fn test() {
     println!("\nwarning: some prints might be out of order\n");
     let exchanger = Exchanger::new();
 
@@ -67,7 +61,7 @@ fn main() {
         vec_join.push(thread::spawn({
             let e = exchanger.clone();
             move || {
-                let time = rand::thread_rng().gen_range(0..20);
+                let time = rand::rng().random_range(0..20);
                 sleep(Duration::from_secs(time));
                 println!("thread {} began exchanging procedure", i);
                 let v = e.exchange(i);
