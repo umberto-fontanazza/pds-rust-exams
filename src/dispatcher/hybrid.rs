@@ -5,7 +5,7 @@ use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
-struct Dispatcher<Msg: Clone> {
+pub struct Dispatcher<Msg: Clone> {
     senders_vec: Mutex<Vec<Sender<Msg>>>,
 }
 
@@ -40,7 +40,7 @@ impl<Msg: Clone> Drop for Dispatcher<Msg> {
     }
 }
 
-struct Subscription<Msg> {
+pub struct Subscription<Msg> {
     sub: Receiver<Msg>,
 }
 
