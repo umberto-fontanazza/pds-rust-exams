@@ -1,7 +1,7 @@
 use rand::Rng;
 use std::fmt::Debug;
 use std::sync::Arc;
-use std::sync::mpsc::{SyncSender, sync_channel}; //TODO: since Rust 1.78 the regular Sender is Sync, this might be redundant
+use std::sync::mpsc::{SyncSender, sync_channel};
 use std::thread;
 use std::thread::{JoinHandle, sleep};
 use std::time::Duration;
