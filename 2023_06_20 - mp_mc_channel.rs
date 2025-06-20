@@ -1,4 +1,5 @@
 /*
+2023-06-20
 La struct MpMcChannel<E: Send> è una implementazione di un canale su cui possono scrivere molti produttori e da cui possono attingere valori molti consumatori.
 Tale struttura offre i seguenti metodi:
 

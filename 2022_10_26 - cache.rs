@@ -1,4 +1,5 @@
 /*
+2022-10-26
 Un componente con funzionalità di cache permette di ottimizzare il comportamento di un sistema riducendo il numero di volte in cui una funzione è invocata,
 tenendo traccia dei risultati da essa restituiti a fronte di un particolare dato in ingresso. Per generalità, si assuma che la funzione accetti un dato di
 tipo generico K e restituisca un valore di tipo generico V.

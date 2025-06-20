@@ -1,4 +1,5 @@
 /*
+2023-01-16
 Una barriera è un costrutto di sincronizzazione usato per regolare l'avanzamento relativo della computazione di più thread.
 All'atto della costruzione di questo oggetto, viene indicato il numero N di thread coinvolti.
 

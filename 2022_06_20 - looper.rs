@@ -1,4 +1,5 @@
 /*
+2022-06-20
 Un paradigma frequentemente usato nei sistemi reattivi e costituito dall'astrazione detta Looper.
 Quando viene creato, un Looper crea una coda di oggetti generici di tipo Message ed un thread.
 II thread attende - senza consumare cicli di CPU - che siano presenti messaggi nella coda,

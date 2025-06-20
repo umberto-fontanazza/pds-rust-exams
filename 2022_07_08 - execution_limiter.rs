@@ -1,4 +1,5 @@
 /*
+2022-07-08
 All'interno di un programma è necessario garantire che non vengano eseguite CONTEMPORANEAMENTE più di N invocazioni di operazioni potenzialmente lente.
 A questo scopo, è stata definita la struttura dati ExecutionLimiter che viene inizializzata con il valore N del limite.
 Tale struttura è thread-safe e offre solo il metodo pubblico generico execute( f ), che accetta come unico parametro una funzione f, priva di parametri
