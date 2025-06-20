@@ -1,5 +1,6 @@
 pub mod cache;
 pub mod count_down_latch;
+pub mod delayed_queue;
 pub mod dispatcher;
 pub mod exchanger;
 pub mod execution_limiter;

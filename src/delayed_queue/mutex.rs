@@ -1,22 +1,3 @@
-/*
-2023-07-07
-    Una DelayedQueue<T:Send> è un particolare tipo di coda non limitata che offre tre metodi
-    principali, oltre alla funzione costruttrice:
-        1. offer(&self, t:T, i: Instant) : Inserisce un elemento che non potrà essere estratto prima
-           dell'istante di scadenza i.
-        2. take(&self) -> Option<T>: Cerca l'elemento t con scadenza più ravvicinata: se tale
-           scadenza è già stata oltrepassata, restituisce Some(t); se la scadenza non è ancora stata
-           superata, attende senza consumare cicli di CPU, che tale tempo trascorra, per poi restituire
-           Some(t); se non è presente nessun elemento in coda, restituisce None. Se, durante l'attesa,
-           avviene un cambiamento qualsiasi al contenuto della coda, ripete il procedimento suddetto
-           con il nuovo elemento a scadenza più ravvicinata (ammesso che ci sia ancora).
-        3. size(&self) -> usize: restituisce il numero di elementi in coda indipendentemente dal fatto
-           che siano scaduti o meno.
-    Si implementi tale struttura dati nel linguaggio Rust, avendo cura di renderne il comportamento
-    thread-safe. Si ricordi che gli oggetti di tipo Condvar offrono un meccanismo di attesa limitata nel
-    tempo, offerto dai metodi wait_timeout(...) e wait_timeout_while(...)).
-*/
-
 use rand::Rng;
 use std::cmp::Ordering;
 use std::fmt::Debug;
@@ -41,26 +22,26 @@ fn time_difference(i1: Instant, i2: Instant) -> (Duration, TimeComparison) {
     };
 }
 
-struct DelayedQueue<T: Send + Clone + Debug + PartialEq> {
+pub struct DelayedQueue<T: Send + Clone + Debug + PartialEq> {
     queue: Mutex<Vec<(Instant, T)>>,
     cv: Condvar,
 }
 
 impl<T: Send + Clone + Debug + PartialEq> DelayedQueue<T> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         DelayedQueue {
             queue: Mutex::new(Vec::new()),
             cv: Condvar::new(),
         }
     }
 
-    fn offer(&self, t: T, i: Instant) {
+    pub fn offer(&self, t: T, i: Instant) {
         self.queue.lock().unwrap().push((i, t));
         self.cv.notify_all();
     }
 
     //the exercise is solved by supposing that the function extracts the seeked element from the queue
-    fn take(&self) -> Option<T> {
+    pub fn take(&self) -> Option<T> {
         loop {
             let mut lock = self.queue.lock().unwrap();
             let queue_length = lock.len();
@@ -113,7 +94,7 @@ impl<T: Send + Clone + Debug + PartialEq> DelayedQueue<T> {
     }
 }
 
-fn main() {
+pub fn test() {
     let delayed_queue = Arc::new(DelayedQueue::<usize>::new());
 
     let mut thread_handles = Vec::new();
@@ -123,15 +104,15 @@ fn main() {
             let d = delayed_queue.clone();
             move || {
                 if i > N_THREADS * 3 / 4 {
-                    thread::sleep(Duration::from_secs(rand::thread_rng().gen_range(0..15)));
+                    thread::sleep(Duration::from_secs(rand::rng().random_range(0..15)));
                     let instant = Instant::now();
                     println!("> Thread {i} taking val from queue...");
                     let val = d.take();
                     println!("> Thread {i} took val {:?} at instant {:?}", val, instant);
                 } else {
-                    thread::sleep(Duration::from_secs(rand::thread_rng().gen_range(2..20)));
+                    thread::sleep(Duration::from_secs(rand::rng().random_range(2..20)));
                     let instant =
-                        Instant::now() + Duration::from_secs(rand::thread_rng().gen_range(1..10));
+                        Instant::now() + Duration::from_secs(rand::rng().random_range(1..10));
                     d.offer(i, instant);
                     println!("pushing {},{:?} into the queue", i, instant);
                 }
