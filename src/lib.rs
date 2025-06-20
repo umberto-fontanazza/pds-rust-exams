@@ -6,5 +6,6 @@ pub mod exchanger;
 pub mod execution_limiter;
 pub mod joiner;
 pub mod looper;
+pub mod mpmc_channel;
 pub mod ranking_barrier;
 pub mod synchronizer;
