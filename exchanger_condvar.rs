@@ -4,41 +4,39 @@ thread chiamante senza consumare CPU fino a che un altro thread non invoca lo st
 l’oggetto passato come parametro dal thread opposto.
 */
 
+use rand::Rng;
 use std::fmt::Debug;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
-use rand::{Rng};
 
-const N_THREADS : usize = 10;
+const N_THREADS: usize = 10;
 
-
-struct Exchanger<T : Debug> {
+struct Exchanger<T: Debug> {
     values: Mutex<(Option<T>, Option<T>)>,
     cv: Condvar,
 }
 
-impl<T : Debug> Exchanger<T>{
-
+impl<T: Debug> Exchanger<T> {
     fn new() -> Arc<Self> {
-        return Arc::new(Exchanger{
-            values : Mutex::new((None,None)),
-            cv: Condvar::new()
-        })
+        return Arc::new(Exchanger {
+            values: Mutex::new((None, None)),
+            cv: Condvar::new(),
+        });
     }
 
-    fn exchange(&self, value: T) -> T{
+    fn exchange(&self, value: T) -> T {
         let value_to_return;
         let mut lock = self.values.lock().unwrap();
-        lock = self.cv.wait_while(lock, |l| { (*l).1.is_some() }).unwrap();
+        lock = self.cv.wait_while(lock, |l| (*l).1.is_some()).unwrap();
 
         if (*lock).0.is_none() {
             println!("{:?} is first", value);
             (*lock).0 = Some(value);
             self.cv.notify_one();
-            lock = self.cv.wait_while(lock, |l| { (*l).1.is_none() }).unwrap();
-            value_to_return = (*lock).1.take().unwrap();    //take replaces the value inside the option with "None"
+            lock = self.cv.wait_while(lock, |l| (*l).1.is_none()).unwrap();
+            value_to_return = (*lock).1.take().unwrap(); //take replaces the value inside the option with "None"
             self.cv.notify_one();
         } else {
             println!("{:?} is second", value);
@@ -57,21 +55,19 @@ fn main() {
     let mut vec_join = Vec::new();
 
     for i in 0..N_THREADS {
-        vec_join.push(thread::spawn(
-            {
-                let e = exchanger.clone();
-                move || {
-                    let time = rand::thread_rng().gen_range(0..20);
-                    sleep(Duration::from_secs(time));
-                    println!("thread {} began exchanging procedure", i);
-                    let v = e.exchange(i);
-                    println!("> thread {} got value {}", i, v);
-                }
-            }))
+        vec_join.push(thread::spawn({
+            let e = exchanger.clone();
+            move || {
+                let time = rand::thread_rng().gen_range(0..20);
+                sleep(Duration::from_secs(time));
+                println!("thread {} began exchanging procedure", i);
+                let v = e.exchange(i);
+                println!("> thread {} got value {}", i, v);
+            }
+        }))
     }
 
     for h in vec_join {
         h.join().unwrap();
     }
 }
-

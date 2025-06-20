@@ -16,21 +16,20 @@ elaborazione, SENZA CONSUMARE cicli macchina.
 Si implementi tale componente a scelta nei linguaggi C++ o Rust.
 */
 
+use rand::distributions::{Distribution, Standard};
+use rand::Rng;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::hash::Hash;
 use std::sync::{Arc, RwLock};
 use std::thread::sleep;
 use std::time::Duration;
-use rand::distributions::{Distribution, Standard};
-use rand::Rng;
 
-const N_THREADS : usize = 5;
-const N_KEYS : i32 = 3;
-
+const N_THREADS: usize = 5;
+const N_KEYS: i32 = 3;
 
 struct Cache<K, V> {
-    map: RwLock<HashMap<K, Arc<V>>>
+    map: RwLock<HashMap<K, Arc<V>>>,
 }
 
 impl<K: Display + Clone + Eq + PartialEq + Hash, V: Clone + Display> Cache<K, V> {
@@ -40,7 +39,12 @@ impl<K: Display + Clone + Eq + PartialEq + Hash, V: Clone + Display> Cache<K, V>
         })
     }
 
-    fn get(&self, i: usize /*added for debugging only*/, k: K, func: impl Fn(K) -> V) -> Arc<V> {
+    fn get(
+        &self,
+        i: usize, /*added for debugging only*/
+        k: K,
+        func: impl Fn(K) -> V,
+    ) -> Arc<V> {
         let read_lock = self.map.read().unwrap();
 
         return match read_lock.get(&k) {
@@ -58,19 +62,21 @@ impl<K: Display + Clone + Eq + PartialEq + Hash, V: Clone + Display> Cache<K, V>
                 if write_lock.get(&k).is_some() {
                     println!("thread #{i} scopre che la chiave E' STATA INSERITA MENTRE ASPETTAVA DI INSERIRLA {k} -> ritorno");
                     write_lock.get(&k).unwrap().clone() //by cloning the Arc just the reference is cloned
-                }
-                else{
+                } else {
                     let val = Arc::new(func(k.clone())); //executed inside lock => avoids calling func more than once per key
                     println!("thread {i} inserisce il valore di f({k})={val}");
-                    write_lock.insert(k.clone(),val.clone());
+                    write_lock.insert(k.clone(), val.clone());
                     val
                 }
             }
-        }
+        };
     }
 }
 
-pub fn f<K: Display, V: Display>(k: K) -> V where Standard: Distribution<V> {
+pub fn f<K: Display, V: Display>(k: K) -> V
+where
+    Standard: Distribution<V>,
+{
     println!(" > Sono dentro la funzione con la chiave...{k}");
     sleep(Duration::from_secs(2));
     let mut rng = rand::thread_rng();
@@ -89,10 +95,10 @@ fn main() {
             move || {
                 for _ in 0..N_KEYS {
                     let j = rand::thread_rng().gen_range(0..N_KEYS);
-                    let rng : u64 = rand::thread_rng().gen_range(0..5);
+                    let rng: u64 = rand::thread_rng().gen_range(0..5);
                     sleep(Duration::from_secs(rng));
                     println!("thread #{i} con chiave {j} sta per entrare nella get");
-                    let ret = c.get(i,j, f);
+                    let ret = c.get(i, j, f);
                     println!("thread #{i} per la chiave {j} restituisce {:?}\n", ret);
                 }
             }
@@ -101,5 +107,4 @@ fn main() {
     for v in vt {
         v.join().unwrap();
     }
-
 }
