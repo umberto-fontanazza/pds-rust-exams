@@ -7,3 +7,4 @@ pub mod execution_limiter;
 pub mod joiner;
 pub mod looper;
 pub mod ranking_barrier;
+pub mod synchronizer;
