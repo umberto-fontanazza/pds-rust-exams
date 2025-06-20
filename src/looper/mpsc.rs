@@ -21,9 +21,9 @@ Si implementi, utilizzando il linguaggio Rust o C++, tale astrazione tenendo con
  metodi dovranno essere thread-safe.
 */
 
-use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
-use std::thread::{spawn, JoinHandle};
+use std::sync::mpsc::{Sender, channel};
+use std::thread::{JoinHandle, spawn};
 
 pub struct Looper<T: Send> {
     sender: Option<Sender<T>>,
@@ -60,7 +60,7 @@ impl<T: Send> Drop for Looper<T> {
     }
 }
 
-fn main() {
+pub fn test() {
     let process = |number: usize| {
         println!("Thread {number} sent to the Looper!");
     };
