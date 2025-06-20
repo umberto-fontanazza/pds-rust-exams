@@ -88,7 +88,7 @@ impl Display for ExecutionError {
 }
 
 fn very_slow_print() -> i32 {
-    let time = rand::thread_rng().gen_range(5..10);
+    let time = rand::rng().random_range(5..10);
     if time > 5 + ((5 as f32) * PANIC_CHANCE) as u64 {
         //40% chance of panicking
         println!("PANICKING....");
@@ -98,7 +98,7 @@ fn very_slow_print() -> i32 {
     return 0;
 }
 
-fn main() {
+pub fn test() {
     let execution_limiter = ExecutionLimiter::new(3);
 
     let mut vec_handles = vec![];
@@ -107,12 +107,16 @@ fn main() {
         vec_handles.push(thread::spawn({
             let execution_limiter = execution_limiter.clone();
             move || {
-                // println!("Executing thread {}", i);
+                println!("Executing thread {}", i);
                 let _res = execution_limiter.execute(i, very_slow_print);
-                /*match _res {
-                    Ok(v) => {println!("Thread {} ended with status {}", i, v)},
-                    Err(e) => {println!("Thread {}: {}",i, e)},
-                }*/
+                match _res {
+                    Ok(v) => {
+                        println!("Thread {} ended with status {}", i, v)
+                    }
+                    Err(e) => {
+                        println!("Thread {}: {}", i, e)
+                    }
+                }
             }
         }))
     }
