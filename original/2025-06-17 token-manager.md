@@ -10,7 +10,9 @@ Si considerino le seguenti strutture dati e rispettive porzioni di codice. Per c
 let boxed: Box<[u32]> = vec![10, 20, 30, 40, 50].into_boxed_slice();
 let slice_ref: &[u32] = &boxed[1..4];
 ```
+
 Domande:
+
 1. Qual è la dimensione della variabile boxed nello stack? (0.4 pt)
 2. Quanta memoria è allocata nello heap dopo l'esecuzione del codice? (0.4 pt)
 3. Qual è lo spazio di memoria occupato da slice_ref nello stack? (0.4 pt)
@@ -31,18 +33,21 @@ let shared_clone = Rc::clone(&shared_vec);
 
 shared_clone.borrow_mut().push(4);
 ```
+
 Domande:
+
 1. Quanta memoria è usata nello stack da shared_vec e shared_clone? (0.5 pt)
 2. Quanto spazio è allocato nello heap in totale (considerando Rc, RefCell, e Vec)? (0.5 pt)
 3. Dopo l’esecuzione del codice, quanti riferimenti forti e deboli esistono? (0,3 pt)
 4. È possibile accedere contemporaneamente in lettura da shared_vec e in scrittura da shared_clone? (0,2 pt)
 
 ---
+
 ## Esercizio 2: Monomorfizzazione in Rust
 
-* Si spieghi che cosa si intende per monomorfizzazione ? (0.5 pt)
-* Si mostri una porzione di codice che mostri un esempio pratico in cui la monomorfizzazione viene applicata (0.5 pt)
-* Si mostri i principali punti di forza e i punti di debolezza di tale proprietà (0.5 pt)
+- Si spieghi che cosa si intende per monomorfizzazione ? (0.5 pt)
+- Si mostri una porzione di codice che mostri un esempio pratico in cui la monomorfizzazione viene applicata (0.5 pt)
+- Si mostri i principali punti di forza e i punti di debolezza di tale proprietà (0.5 pt)
 
 ---
 
@@ -90,7 +95,9 @@ Si consideri il seguente programma Rust che usa due thread per gestire una coda 
 37     consumer.join().unwrap();
 38 }
 ```
+
 Domande:
+
 1. Descrivere il comportamento complessivo del programma e spiegare cosa fanno i 2 thread. (0.2 pt)
 2. È possibile che venga stampato (A) alla riga 31? Se sì, in quali condizioni? (0.2 pt)
 3. Il programma termina? Se no, spiegare perché e proporre una modifica per permettere una
@@ -105,7 +112,7 @@ Un applicativo software multithread fa accesso ai servizi di un server remoto, a
 Tali richieste devono includere un token di sicurezza che identifica l'applicativo stesso e ne autorizza l'accesso.
 Per motivi di sicurezza, il token ha una validità limitata nel tempo (qualche minuto) e deve essere rinnovato alla sua scadenza.
 Il token viene ottenuto attraverso una funzione (fornita esternamente e conforme al tipo **TokenAcquirer**) che restituisce alternativamente un token e la sua data di scadenza o un messaggio di errore se non è possibile fornirlo.
-Poiché la emissione richiede un tempo apprezzabile (da alcune centinaia di millisecondi ad alcuni secondi), si vuole centralizzare la gestione del token, 
+Poiché la emissione richiede un tempo apprezzabile (da alcune centinaia di millisecondi ad alcuni secondi), si vuole centralizzare la gestione del token,
 per evitare che più thread ne facciano richiesta in contemporanea.
 
 A tale scopo deve essere implementata la struct TokenManager che si occupa di gestire il rilascio, il rinnovo e la messa a disposizione del token a chi ne abbia bisogno, secondo la logica di seguito indicata.
@@ -122,12 +129,12 @@ pub fn try_get_token(&self) -> Option<string>
 
 Al proprio interno, la struct TokenManager mantiene 3 possibili stati:
 
-* Empty     - indica che non è ancora stato richiesto alcun token;
-* Pending   - indica che è in corso una richiesta di acquisizione del token;
-* Valid     - indica che è disponibile un token in corso di validità;
+- Empty - indica che non è ancora stato richiesto alcun token;
+- Pending - indica che è in corso una richiesta di acquisizione del token;
+- Valid - indica che è disponibile un token in corso di validità;
 
 Il metodo `new(...)` riceve il puntatore alla funzione in grado di acquisire il token. Essa opera in modalità pigra e si limita a creare un'istanza della struttura con le necessarie informazioni per gestire il suo successivo comportamento.
-    
+
 Il metodo `get_token(...)` implementa il seguente comportamento:
 
 - Se lo stato è Empty, passa allo stato Pending e invoca la funzione per acquisire il token; se questa ritorna un risultato valido, memorizza il token e la sua scadenza, porta lo stato a Valid e restituisce copia del token stesso; <br>se, invece, questa restituisce un errore, pone lo stato a Empty e restituisce l'errore ricevuto.
@@ -135,6 +142,7 @@ Il metodo `get_token(...)` implementa il seguente comportamento:
 - Se lo stato è Valid e il token non risulta ancora scaduto, ne restituisce una copia; altrimenti pone lo stato ad Pending e inizia una richiesta di acquisizione, come indicato sopra.
 
 Il metodo `try_get_token(...)` implementa il seguente comportamento:
+
 - Se lo stato è Valid e il token non è scaduto, restituisce una copia del token opportunamente incapsulata in un oggetto di tipo Option. In tutti gli altri casi restituisce None.
 
 Si implementi tale struttura nel linguaggio Rust.
