@@ -1,3 +1,5 @@
+luglio 2024
+
 La classe CountDownLatch permette di sincronizzare uno o più thread che devono attendere, senza consumare CPU, il completamento di operazioni in corso in altri thread. All’atto della costruzione, gli oggetti di questa
 classe contengono un contatore inizializzato con un valore intero strettamente positivo.
 
