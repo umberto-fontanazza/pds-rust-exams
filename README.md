@@ -4,18 +4,20 @@ The purpose of this repository is to collect all the exam topics of the API prog
 
 ## Description
 
-ALL EXAM TRACKS ARE CONTAINED WITHIN IN A BLOCK COMMENT
+All the original exam tracks are in the folder "original". For every data structure to be implemented a rust module is created with several alternative implementations.
+Inside the rust module there is a markdown file with the exercise track in markdown.
 
-All tracks are solved and COME WITH A FUNCTIONING MAIN to let you execute them for your understanding: in the actual exam the main() function is not required. 
+You can import both the implementatio you want to execute and test functions in the main and execute them.
 
-The .rs files named with a date relate to the corresponding exam session.
-In addition there are undated .rs files which are from to old exams that required writing code in C++, of course updated to the Rust language.
+Old C++ tracks have been updated to the rust language.
 
 Some solutions are print and/or comment heavy, we hope that might be useful for your understanding
 
 ## Authors
 
-With love ❤ from MatteoGuarna, FrankDal, saultab 
+With love ❤ from MatteoGuarna, FrankDal, saultab.
+
+This repo was then forked, reviewed by Umberto Fontanazza.
 
 ## License
 
