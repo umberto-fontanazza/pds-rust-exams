@@ -14,7 +14,7 @@ type TokenAcquirer = dyn Fn() -> Result<(String, Instant), String> + Sync;
 
 pub fn new(acquire_token: Box<TokenAcquirer> ) -> Self
 pub fn get_token(&self) -> Result<String, String>
-pub fn try_get_token(&self) -> Option<string>
+pub fn try_get_token(&self) -> Option<String>
 ```
 
 Al proprio interno, la struct TokenManager mantiene 3 possibili stati:
