@@ -43,13 +43,14 @@ impl<T> Ord for Timed<T> {
 }
 
 impl<T> Timed<T> {
-    fn is_ready(&self) -> bool {
-        Instant::now() >= self.time
-    }
-
-    #[inline]
-    fn is_waiting(&self) -> bool {
-        !self.is_ready()
+    fn wait_do<F>(self, closure: F)
+    where
+        F: FnOnce(T) -> (),
+    {
+        if self.time > Instant::now() {
+            sleep(self.time - Instant::now());
+        }
+        closure(self.item)
     }
 }
 
@@ -60,18 +61,26 @@ pub struct DelayedExecutor {
 
 impl DelayedExecutor {
     pub fn new() -> Self {
-        let arc = Arc::new((Mutex::new((BinaryHeap::new(), State::Open)), Condvar::new()));
-        Self {
-            arc: arc.clone(),
-            executor: Some(spawn(move || {
+        let arc = Arc::new((
+            Mutex::new((BinaryHeap::<Timed<Task>>::new(), State::Open)),
+            Condvar::new(),
+        ));
+        let executor_cb = {
+            let mut timeout = Duration::MAX;
+            let arc = arc.clone();
+            move || {
                 loop {
                     let mut guard = arc
                         .1
-                        .wait_while(arc.0.lock().unwrap(), |(heap, state)| {
+                        .wait_timeout_while(arc.0.lock().unwrap(), timeout, |(heap, state)| {
                             heap.is_empty() && *state == State::Open
-                                || heap.peek().is_some_and(|time_task| time_task.is_waiting())
+                                || heap.peek().is_some_and(|time_task| {
+                                    timeout = time_task.time - Instant::now();
+                                    !timeout.is_zero()
+                                })
                         })
-                        .unwrap();
+                        .unwrap()
+                        .0;
                     let (heap, state) = &mut *guard;
                     match *state {
                         State::Open => {
@@ -84,23 +93,26 @@ impl DelayedExecutor {
                                 .map(|_| heap.pop().unwrap())
                                 .collect::<Vec<Timed<Task>>>();
                             drop(guard);
-                            sorted_tasks.into_iter().for_each(
-                                |Timed::<_> {
-                                     item: task_fn,
-                                     time,
-                                 }| {
-                                    if time > Instant::now() {
-                                        sleep(Instant::now() - time);
-                                    }
-                                    task_fn()
-                                },
-                            );
+                            sorted_tasks
+                                .into_iter()
+                                .for_each(|timed| timed.wait_do(|callable| callable()));
                             break;
                         }
                     }
                 }
-            })),
+            }
+        };
+        Self {
+            arc,
+            executor: Some(spawn(executor_cb)),
         }
+    }
+
+    pub fn execute_no_delay<F>(&self, task: F) -> bool
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        self.execute(task, Duration::from_millis(0))
     }
 
     pub fn execute<F>(&self, task: F, delay: Duration) -> bool
@@ -116,6 +128,7 @@ impl DelayedExecutor {
         match state {
             State::Open => {
                 heap.push(timed_task);
+                self.arc.1.notify_one();
                 true
             }
             State::Closed => false,
@@ -137,4 +150,25 @@ impl Drop for DelayedExecutor {
         self.close(false);
         self.executor.take().unwrap().join().unwrap();
     }
+}
+
+pub fn test() {
+    let start = Instant::now();
+    let de = Arc::new(DelayedExecutor::new());
+    let task1 = move || println!("I'm task 1 {:?}", Instant::now() - start);
+    let task2 = move || println!("I'm task 2 {:?}", Instant::now() - start);
+    let task3 = move || println!("I'm task 3 {:?}", Instant::now() - start);
+    let thread_1 = {
+        let de = de.clone();
+        spawn(move || de.execute_no_delay(task2))
+    };
+    let thread_2 = {
+        let de = de.clone();
+        spawn(move || {
+            de.execute(task3, Duration::from_secs(2));
+        })
+    };
+    de.execute(task1, Duration::from_millis(500));
+    thread_1.join().unwrap();
+    thread_2.join().unwrap();
 }
