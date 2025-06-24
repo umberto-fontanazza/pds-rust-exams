@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::sync::mpsc::{Sender, channel};
 use std::thread::{JoinHandle, spawn};
@@ -24,15 +25,14 @@ enum State {
     Valid((String, Instant)),
 }
 
-// TODO: make it lazily initialized
 // TODO: check the required tests
-pub struct TokenManager {
+struct Inner {
     sender: Option<Sender<Event>>,
     thread: Option<JoinHandle<()>>,
     acquirer: Option<JoinHandle<()>>,
 }
 
-impl TokenManager {
+impl Inner {
     pub fn new(acquire_token: Box<TokenAcquirer>) -> Self {
         let (sender, receiver) = channel::<Event>();
         let (token_req_snd, token_req_rx) = channel::<TokenRequest>();
@@ -44,16 +44,16 @@ impl TokenManager {
                 match event {
                     Event::Get(sender) => match &mut state {
                         State::Empty => {
-                            queue.as_mut().unwrap().push_back(sender);
-                            state = State::Pending(queue.take());
                             token_req_snd.send(() as TokenRequest).unwrap();
+                            state = State::Pending(queue.take());
+                            queue.as_mut().unwrap().push_back(sender);
                         }
                         State::Pending(senders) => senders.as_mut().unwrap().push_back(sender),
                         State::Valid((token, expiry)) => {
                             if Instant::now() >= *expiry {
-                                queue.as_mut().unwrap().push_back(sender);
-                                state = State::Pending(queue.take());
                                 token_req_snd.send(() as TokenRequest).unwrap();
+                                state = State::Pending(queue.take());
+                                queue.as_mut().unwrap().push_back(sender);
                             } else {
                                 sender.send(Ok((token.clone(), *expiry))).unwrap();
                             }
@@ -129,11 +129,61 @@ impl TokenManager {
     }
 }
 
-impl Drop for TokenManager {
+impl Drop for Inner {
     fn drop(&mut self) {
         self.sender.take().unwrap().send(Event::Drop).unwrap();
         self.acquirer.take().unwrap().join().unwrap();
         self.thread.take().unwrap().join().unwrap();
+    }
+}
+
+enum Lazy {
+    Preallocated(Option<Box<TokenAcquirer>>),
+    Loaded(Inner),
+}
+
+impl Lazy {
+    fn is_loaded(&self) -> bool {
+        match self {
+            Lazy::Preallocated(_) => false,
+            Lazy::Loaded(_) => true,
+        }
+    }
+}
+
+pub struct TokenManager(RefCell<Lazy>);
+
+impl TokenManager {
+    #[inline]
+    fn ensure_loaded(&self) {
+        if !self.0.borrow().is_loaded() {
+            let acquire_token: Box<TokenAcquirer> = match &mut *self.0.borrow_mut() {
+                Lazy::Preallocated(opt) => opt.take(),
+                Lazy::Loaded(_) => unreachable!(),
+            }
+            .unwrap();
+            self.0.replace(Lazy::Loaded(Inner::new(acquire_token)));
+        }
+    }
+
+    pub fn new(acquire_token: Box<TokenAcquirer>) -> Self {
+        Self(RefCell::new(Lazy::Preallocated(Some(acquire_token))))
+    }
+
+    pub fn get_token(&self) -> Result<String, String> {
+        self.ensure_loaded();
+        match &*self.0.borrow() {
+            Lazy::Preallocated(_) => unreachable!(),
+            Lazy::Loaded(inner) => inner.get_token(),
+        }
+    }
+
+    pub fn try_get_token(&self) -> Option<String> {
+        self.ensure_loaded();
+        match &*self.0.borrow() {
+            Lazy::Preallocated(_) => unreachable!(),
+            Lazy::Loaded(inner) => inner.try_get_token(),
+        }
     }
 }
 
