@@ -7,7 +7,7 @@ The purpose of this repository is to collect all the exam topics of the API prog
 All the original exam tracks are in the folder "original". For every data structure to be implemented a rust module is created with several alternative implementations.
 Inside the rust module there is a markdown file with the exercise track in markdown.
 
-You can import both the implementatio you want to execute and test functions in the main and execute them.
+You can import both the implementation you want to execute and test functions in the main and execute them.
 
 Old C++ tracks have been updated to the rust language.
 
