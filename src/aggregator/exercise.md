@@ -1,3 +1,4 @@
+2025-07-03
 Aggregatore di misure
 
 Un sistema di monitoraggio all'interno di uno stabilimento industriale raccoglie misure di temperatura da più
