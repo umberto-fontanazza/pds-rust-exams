@@ -1,3 +1,4 @@
+pub mod aggregator;
 pub mod cache;
 pub mod count_down_latch;
 pub mod delayed_executor;
