@@ -37,7 +37,7 @@ impl Aggregator {
                 loop {
                     match rx.recv_timeout(end_t - Instant::now()) {
                         Ok(DaemonMessage::AddMeasure((sensor_id, temperature, measure_time))) => {
-                            /* These cases are not handles by the provided solution by prof Malnati */
+                            // TODO: ask Malnati for this one
                             // if measure_time < start_t {
                             //     println!("Old measure received!");
                             //     continue;
@@ -63,7 +63,6 @@ impl Aggregator {
                                 .unwrap();
                         }
                         Err(RecvTimeoutError::Timeout) => {
-                            println!("Timeout!");
                             start_t = end_t;
                             end_t = start_t + aggregation_period;
                             averages = Some(
