@@ -26,26 +26,25 @@ pub struct Average {
 
 impl Aggregator {
     pub fn new(sample_time_millis: u64) -> Self {
+        let mut start_t = Instant::now();
         let aggregation_period = Duration::from_millis(sample_time_millis);
         let (snd, rx) = channel::<DaemonMessage>();
         let daemon = {
             Some(spawn(move || {
-                let mut start_t = Instant::now();
                 let mut end_t = start_t + aggregation_period;
                 let mut measures = HashMap::<SensorId, Vec<f64>>::new();
                 let mut averages: Option<Vec<Average>> = None;
                 loop {
                     match rx.recv_timeout(end_t - Instant::now()) {
                         Ok(DaemonMessage::AddMeasure((sensor_id, temperature, measure_time))) => {
-                            // TODO: ask Malnati for this one
-                            // if measure_time < start_t {
-                            //     println!("Old measure received!");
-                            //     continue;
-                            // }
-                            // if measure_time >= end_t {
-                            //     println!("Received a measure in the future!");
-                            //     continue;
-                            // }
+                            if measure_time < start_t {
+                                println!("Old measure received!");
+                                continue;
+                            }
+                            if measure_time >= end_t {
+                                println!("Received a measure in the future!");
+                                continue;
+                            }
                             measures
                                 .entry(sensor_id)
                                 .and_modify(|v| v.push(temperature))
